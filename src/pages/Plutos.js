@@ -74,16 +74,18 @@ const Plutos = () => {
     const isAndroid = /Android/i.test(navigator.userAgent);
     const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
   
-    if (isIOS && window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
-      window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
-    } else if (isAndroid && 'vibrate' in navigator) {
-      // Use the vibration API on Android
-      navigator.vibrate(50); // Vibrate for 50ms
-    } else {
-      console.warn('Haptic feedback not supported on this device.');
-    }
-  }
-
+    // Use setTimeout to ensure the vibration is triggered immediately after user action
+    setTimeout(() => {
+      if (isIOS && window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
+        window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+      } else if (isAndroid && 'vibrate' in navigator) {
+        // Use the vibration API on Android
+        navigator.vibrate(50); // Vibrate for 50ms
+      } else {
+        console.warn('Haptic feedback not supported on this device.');
+      }
+    }, 0); // Ensure this runs as soon as possible after the user interaction
+  }  
 
 
 
