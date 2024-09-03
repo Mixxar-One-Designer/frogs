@@ -52,10 +52,6 @@ const EnergyFill = styled.div`
 
 function App() {
   const { energy, setEnergy, displayEnergy, setDisplayEnergy, idme, setIdme, count, setCount } = useContext(EnergyContext);
-    // eslint-disable-next-line
-  const [username, setUsername] = useState("");
-    // eslint-disable-next-line
-  const [name, setName] = useState("");
   const imageRef = useRef(null);
   const [clicks, setClicks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -107,7 +103,7 @@ function App() {
         y: e.clientY - rect.top,
       };
 
-      const updatedCount = count + 2; // Increment count by 5
+      const updatedCount = count + 2; // Increment count by 2
       const updatedEnergy = energy - 2;
 
       setClicks((prevClicks) => [...prevClicks, newClick]);
@@ -127,32 +123,14 @@ function App() {
   };
 
   useEffect(() => {
-    // Fetch username and user ID from Telegram Web App context
-    const telegramName =
-      window.Telegram.WebApp.initDataUnsafe?.user?.first_name;
-    const telegramLastName =
-      window.Telegram.WebApp.initDataUnsafe?.user?.last_name;
-    const telegramUsername =
-      window.Telegram.WebApp.initDataUnsafe?.user?.username;
+    // Fetch user ID from Telegram Web App context
     const telegramUserid = window.Telegram.WebApp.initDataUnsafe?.user?.id;
 
-    if (telegramName) {
-      setName(telegramName + " " + telegramLastName);
-    }
-
-    if (telegramUsername) {
-      setUsername(telegramUsername);
-    }
     if (telegramUserid) {
       setIdme(telegramUserid);
-    }
-
-    if (telegramUsername && telegramUserid) {
       saveRefereeIdToFirestore();
-    }
 
-    // Fetch count and energy from Firestore when component mounts
-    if (telegramUserid) {
+      // Fetch count and energy from Firestore when component mounts
       fetchUserStatsFromFirestore(telegramUserid)
         .then((userStats) => {
           if (isNaN(userStats.count)) {
@@ -175,7 +153,6 @@ function App() {
   }, []);
 
   const saveRefereeIdToFirestore = async () => {
-    // Fetch username and user ID from Telegram Web App context
     const telegramUsername =
       window.Telegram.WebApp.initDataUnsafe?.user?.username;
     const telegramUserid = window.Telegram.WebApp.initDataUnsafe?.user?.id;
@@ -194,7 +171,6 @@ function App() {
     }
 
     if (telegramUsername && telegramUserid) {
-      
       await storeUserData(
         fullName,
         telegramUsername,
@@ -206,6 +182,7 @@ function App() {
 
   const storeUserData = async (fullname, username, userid, refereeId) => {
     try {
+      console.log("Storing user data:", { fullname, username, userid, refereeId });
       const finalUsername = username || `Anonymous_${userid}`;
       const userRef = collection(db, "telegramUsers");
       const querySnapshot = await getDocs(userRef);
@@ -227,9 +204,9 @@ function App() {
           refereeId: refereeId || null, // Store refereeId if present
           timestamp: new Date(),
         });
-        // console.log("User data stored:", { username, userid, refereeId });
+        console.log("User data stored successfully:", { username, userid, refereeId });
       } else {
-        // console.log("User already exists:", { username, userid });
+        console.log("User already exists:", { username, userid });
       }
     } catch (e) {
       console.error("Error adding document: ", e);
@@ -238,27 +215,37 @@ function App() {
 
   const updateUserStatsInFirestore = async (userid, newCount, newEnergy) => {
     try {
+      console.log("Updating user stats in Firestore:", { userid, newCount, newEnergy });
       const userRef = collection(db, "telegramUsers");
       const querySnapshot = await getDocs(userRef);
+      let updated = false;
       querySnapshot.forEach((doc) => {
         if (doc.data().userId === userid) {
           console.log("Updating document:", doc.id);
-          updateDoc(doc.ref, { count: newCount, energy: newEnergy });
+          updateDoc(doc.ref, { count: newCount, energy: newEnergy })
+            .then(() => console.log("Document updated successfully:", doc.id))
+            .catch((error) => console.error("Error updating document: ", error));
+          updated = true;
         }
       });
+      if (!updated) {
+        console.log("No matching document found for update.");
+      }
     } catch (e) {
       console.error("Error updating document: ", e);
     }
-  };  
+  };
 
   const fetchUserStatsFromFirestore = async (userid) => {
     try {
+      console.log("Fetching user stats from Firestore:", { userid });
       const userRef = collection(db, "telegramUsers");
       const querySnapshot = await getDocs(userRef);
       let userStats = { count: 0, energy: 500 };
       querySnapshot.forEach((doc) => {
         if (doc.data().userId === userid) {
           userStats = { count: doc.data().count, energy: doc.data().energy };
+          console.log("Fetched user stats:", userStats);
         }
       });
       return userStats;
@@ -268,13 +255,8 @@ function App() {
     }
   };
 
-  const formattedCount = new Intl.NumberFormat()
-    .format(count)
-    .replace(/,/g, " ");
-
   return (
     <>
-    
       {loading ? (
         <Spinner />
       ) : (
@@ -284,11 +266,10 @@ function App() {
               <img src={coinsmall} className="w-full" alt="coin" />
             </div>
             <h1 className="text-[#fff] text-[42px] font-extrabold">
-              {formattedCount}
+              {count}
             </h1>
           </div>
           <div
-           
             className="w-full ml-[6px] flex space-x-1 items-center justify-center"
           >
             <img
@@ -296,7 +277,9 @@ function App() {
               className="w-[30px] h-[30px] relative"
               alt="bronze"
             />
-            <h2 onClick={levelsAction} className="text-[#9d99a9] text-[20px] font-medium">Bronze</h2>
+            <h2 onClick={levelsAction} className="text-[#9d99a9] text-[20px] font-medium">
+              Bronze
+            </h2>
             <MdOutlineKeyboardArrowRight className="w-[20px] h-[20px] text-[#9d99a9] mt-[2px]" />
           </div>
           <div className="w-full flex justify-center items-center pt-14 pb-36">
